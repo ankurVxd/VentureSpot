@@ -209,13 +209,16 @@ def calculate_financial_changes(
 # =========================================================
 # GENERAL ENDPOINTS
 # =========================================================
+
 @app.get("/")
 def root():
     return {
+        "name": "VentureSpot API",
         "message": "Welcome to VentureSpot API",
         "version": "0.3.0",
         "docs": "/docs",
     }
+
 @app.get("/api/v1/health")
 def health_check():
     return {
@@ -289,54 +292,70 @@ def compare_business_scenarios(
 # =========================================================
 # SAVED BUSINESSES
 # =========================================================
-@app.post("/api/v1/businesses")
+
+# =========================================================
+# SAVED BUSINESSES
+# =========================================================
+@app.post("/api/v1/businesses", status_code=201)
 def create_saved_business(request: SavedBusinessCreate):
     name = request.name.strip()
+
     if not name:
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail="Business name cannot be empty.",
         )
+
     try:
-        business_id = create_business(
-            name,
-            request.inputs.model_dump(),
-        )
+        business = create_business(name, request.inputs.model_dump())
     except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return business
+
+    if business:
+        return business
+
     return {
-        "message": "Business saved successfully.",
-        "business_id": business_id,
+        "id": business_id,
         "name": name,
         "inputs": request.inputs.model_dump(),
     }
+
+
 @app.get("/api/v1/businesses")
 def get_saved_businesses():
-    return {"businesses": list_businesses()}
+    return list_businesses()
+
+
 @app.get("/api/v1/businesses/{business_id}")
 def get_saved_business(business_id: int):
     business = get_business(business_id)
+
     if not business:
         raise HTTPException(
             status_code=404,
-            detail="Saved business not found.",
+            detail="Business not found",
         )
+
     return business
+
+
 @app.get("/api/v1/businesses/{business_id}/analyses")
 def get_saved_business_analyses(business_id: int):
     business = get_business(business_id)
+
     if not business:
         raise HTTPException(
             status_code=404,
-            detail="Saved business not found.",
+            detail="Business not found",
         )
+
     return {
         "business_id": business_id,
         "analyses": list_analyses(business_id),
     }
+
 # =========================================================
 # LOCATION INTELLIGENCE — STAGE 1
 # =========================================================
