@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Optional
+from typing import Literal, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
@@ -70,6 +70,19 @@ class RiskRequest(BusinessRequest):
 class SavedBusinessCreate(BaseModel):
     name: str = Field(min_length=1, max_length=150)
     inputs: BusinessRequest
+
+class CapacityRequest(BaseModel):
+    """Inputs for an approximate business-space capacity estimate."""
+    model_config = ConfigDict(extra="forbid")
+    total_area: float = Field(gt=0, le=10_000_000)
+    area_unit: Literal["sq_ft", "sq_m"] = "sq_ft"
+    business_type: Literal[
+        "cafe_restaurant", "salon", "gym", "retail", "grocery", "office", "other"
+    ]
+    reserved_area: float = Field(default=0, ge=0, le=10_000_000)
+    seats_per_table: int = Field(default=4, ge=1, le=20)
+    custom_area_per_unit: Optional[float] = Field(default=None, gt=0, le=100_000)
+
 # =========================================================
 # LOCATION REQUEST MODELS
 # =========================================================
@@ -290,12 +303,79 @@ def compare_business_scenarios(
         results=results,
     )
 # =========================================================
-# SAVED BUSINESSES
+# BUSINESS SPACE & CAPACITY PLANNER
 # =========================================================
+
+@app.post("/api/v1/capacity")
+def estimate_business_capacity(request: CapacityRequest):
+    """Estimate practical layout capacity; this is not a legal occupancy approval."""
+    conversion = 10.7639104167 if request.area_unit == "sq_m" else 1.0
+    total_sq_ft = request.total_area * conversion
+    reserved_sq_ft = request.reserved_area * conversion
+
+    if reserved_sq_ft >= total_sq_ft:
+        raise HTTPException(
+            status_code=422,
+            detail="Reserved area must be smaller than the total floor area.",
+        )
+
+    usable_sq_ft = total_sq_ft - reserved_sq_ft
+    models = {
+        "cafe_restaurant": ("Café / Restaurant", 0.72, 18.0, "dining seats",
+            "Dining estimate includes table spacing and circulation."),
+        "salon": ("Salon / Barbershop", 0.70, 70.0, "service stations",
+            "Station estimate allows for a chair, stylist movement, and circulation; wash and waiting areas may need extra space."),
+        "gym": ("Gym / Fitness Studio", 0.68, 50.0, "simultaneous users",
+            "User estimate allows for equipment zones and movement space; changing rooms and specialist equipment can reduce capacity."),
+        "retail": ("Retail Shop", 0.65, 35.0, "customers at once",
+            "Sales-floor estimate accounts for displays and customer circulation; stockroom and checkout space should be reserved separately."),
+        "grocery": ("Grocery Store", 0.60, 30.0, "customers at once",
+            "Customer estimate allows for shelves and aisle movement; stockroom, cold storage, and checkout space should be reserved separately."),
+        "office": ("Office / Coworking", 0.72, 75.0, "workstations",
+            "Workstation estimate allows for desks and circulation; meeting rooms, reception, and shared facilities should be reserved separately."),
+        "other": ("Other Business", 0.65, 40.0, "practical capacity units",
+            "Generic planning estimate. Set a custom area-per-unit value when you know the layout requirements."),
+    }
+    label, efficiency, default_unit_area, unit_label, notes = models[request.business_type]
+    effective_area = usable_sq_ft * efficiency
+    unit_area = request.custom_area_per_unit or default_unit_area
+    capacity = max(0, math.floor(effective_area / unit_area))
+
+    result = {
+        "business_type": request.business_type,
+        "business_label": label,
+        "total_area_sq_ft": round(total_sq_ft, 2),
+        "reserved_area_sq_ft": round(reserved_sq_ft, 2),
+        "usable_area_sq_ft": round(usable_sq_ft, 2),
+        "effective_layout_area_sq_ft": round(effective_area, 2),
+        "layout_efficiency_percent": round(efficiency * 100, 1),
+        "area_per_unit_sq_ft": round(unit_area, 2),
+        "estimated_capacity": capacity,
+        "capacity_unit": unit_label,
+        "assumptions": notes,
+        "disclaimer": (
+            "This is an approximate planning estimate, not a certified or legally permitted "
+            "occupancy limit. Verify applicable building, fire, accessibility, ventilation, "
+            "and local authority requirements before using a layout."
+        ),
+    }
+    if request.business_type == "cafe_restaurant":
+        result["estimated_tables"] = math.ceil(capacity / request.seats_per_table) if capacity else 0
+        result["seats_per_table"] = request.seats_per_table
+        result["table_note"] = (
+            "Table count is an estimate based on seats per table; the actual layout may fit fewer "
+            "seats depending on table sizes and aisle placement."
+        )
+    if request.area_unit == "sq_m":
+        result["total_area_sq_m"] = round(total_sq_ft / 10.7639104167, 2)
+        result["usable_area_sq_m"] = round(usable_sq_ft / 10.7639104167, 2)
+    return result
+
 
 # =========================================================
 # SAVED BUSINESSES
 # =========================================================
+
 @app.post("/api/v1/businesses", status_code=201)
 def create_saved_business(request: SavedBusinessCreate):
     name = request.name.strip()
@@ -313,49 +393,10 @@ def create_saved_business(request: SavedBusinessCreate):
 
     return business
 
-    if business:
-        return business
-
-    return {
-        "id": business_id,
-        "name": name,
-        "inputs": request.inputs.model_dump(),
-    }
-
 
 @app.get("/api/v1/businesses")
 def get_saved_businesses():
     return list_businesses()
-
-
-@app.get("/api/v1/businesses/{business_id}")
-def get_saved_business(business_id: int):
-    business = get_business(business_id)
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found",
-        )
-
-    return business
-
-
-@app.get("/api/v1/businesses/{business_id}/analyses")
-def get_saved_business_analyses(business_id: int):
-    business = get_business(business_id)
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found",
-        )
-
-    return {
-        "business_id": business_id,
-        "analyses": list_analyses(business_id),
-    }
-
 # =========================================================
 # LOCATION INTELLIGENCE — STAGE 1
 # =========================================================

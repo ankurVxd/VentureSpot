@@ -1,4 +1,3 @@
-
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Activity,
@@ -16,20 +15,19 @@ import {
   LoaderCircle,
   MapPinned,
   RefreshCw,
+  Ruler,
   ShieldAlert,
   SlidersHorizontal,
   Wallet,
 } from "lucide-react";
-
 import SavedBusinesses from "./SavedBusinesses";
 import DecisionInsights from "./DecisionInsights";
 import LocationImpact from "./LocationImpact";
+import CapacityPlanner from "./CapacityPlanner";
 import "./App.css";
-
 const API_URL = (
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
-
 type BusinessInputs = {
   customers_per_day: number;
   operating_days_per_month: number;
@@ -39,7 +37,6 @@ type BusinessInputs = {
   startup_investment: number;
   available_capital: number;
 };
-
 type FinancialResult = {
   monthly_customers: number;
   monthly_revenue: number;
@@ -56,7 +53,6 @@ type FinancialResult = {
   cash_after_one_month: number;
   investment_recovery_months: number | null;
 };
-
 type RiskResult = FinancialResult & {
   scenario: {
     demand_drop_percent: number;
@@ -64,9 +60,7 @@ type RiskResult = FinancialResult & {
     fixed_cost_increase_percent: number;
   };
 };
-
-type Page = "overview" | "saved" | "location";
-
+type Page = "overview" | "saved" | "location" | "capacity";
 const initialInputs: BusinessInputs = {
   customers_per_day: 10,
   operating_days_per_month: 20,
@@ -76,32 +70,26 @@ const initialInputs: BusinessInputs = {
   startup_investment: 15000,
   available_capital: 30000,
 };
-
 const currency = (value: number) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value);
-
 const number = (value: number) =>
   new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 1,
   }).format(value);
-
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
-
     try {
       const data = await response.json();
-
       if (data.detail) {
         message =
           typeof data.detail === "string"
@@ -111,42 +99,31 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     } catch {
       // Keep the default error message.
     }
-
     throw new Error(message);
   }
-
   return response.json() as Promise<T>;
 }
-
 function App() {
   const [activePage, setActivePage] = useState<Page>("overview");
-
   const [inputs, setInputs] =
     useState<BusinessInputs>(initialInputs);
-
   const [demandDrop, setDemandDrop] = useState(30);
   const [variableIncrease, setVariableIncrease] = useState(0);
   const [fixedIncrease, setFixedIncrease] = useState(0);
-
   const [result, setResult] = useState<FinancialResult | null>(null);
   const [riskResult, setRiskResult] = useState<RiskResult | null>(null);
-
   const [loading, setLoading] = useState(false);
   const [riskLoading, setRiskLoading] = useState(false);
-
   const [error, setError] = useState("");
   const [riskError, setRiskError] = useState("");
   const [apiConnected, setApiConnected] = useState(false);
-
   useEffect(() => {
     let active = true;
-
     fetch(`${API_URL}/api/v1/health`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("API unavailable");
         }
-
         return response.json();
       })
       .then((data) => {
@@ -159,40 +136,33 @@ function App() {
           setApiConnected(false);
         }
       });
-
     return () => {
       active = false;
     };
   }, []);
-
   const updateInput = (
     key: keyof BusinessInputs,
     value: string,
   ) => {
     const parsed = value === "" ? 0 : Number(value);
-
     setInputs((current) => ({
       ...current,
       [key]: Number.isFinite(parsed) ? parsed : 0,
     }));
   };
-
   async function analyzeBusiness(
     event?: FormEvent<HTMLFormElement>,
   ) {
     event?.preventDefault();
-
     setLoading(true);
     setError("");
     setRiskError("");
     setRiskResult(null);
-
     try {
       const data = await postJson<FinancialResult>(
         "/api/v1/analyze",
         inputs,
       );
-
       setResult(data);
     } catch (err) {
       setError(
@@ -204,11 +174,9 @@ function App() {
       setLoading(false);
     }
   }
-
   async function simulateRisk() {
     setRiskLoading(true);
     setRiskError("");
-
     try {
       const data = await postJson<RiskResult>(
         "/api/v1/simulate",
@@ -219,7 +187,6 @@ function App() {
           fixed_cost_increase_percent: fixedIncrease,
         },
       );
-
       setRiskResult(data);
     } catch (err) {
       setRiskError(
@@ -231,7 +198,6 @@ function App() {
       setRiskLoading(false);
     }
   }
-
   const maxChartValue = result
     ? Math.max(
         result.monthly_revenue,
@@ -240,19 +206,18 @@ function App() {
         1,
       )
     : 1;
-
   const pageTitle =
     activePage === "saved"
       ? "Saved Businesses"
       : activePage === "location"
         ? "Location Intelligence"
-        : "Business overview";
-
+        : activePage === "capacity"
+          ? "Space & Capacity Planner"
+          : "Business overview";
   function navigate(page: Page) {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: "auto" });
   }
-
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -265,15 +230,12 @@ function App() {
           <span className="brand-mark">
             <BarChart3 size={23} />
           </span>
-
           <span>
             <strong>VentureSpot</strong>
             <small>FINANCIAL INTELLIGENCE</small>
           </span>
         </button>
-
         <div className="sidebar-label">WORKSPACE</div>
-
         <nav className="side-nav" aria-label="Main navigation">
           <button
             type="button"
@@ -285,7 +247,6 @@ function App() {
             <LayoutDashboard size={18} />
             Overview
           </button>
-
           <button
             type="button"
             className={`nav-item ${
@@ -296,7 +257,6 @@ function App() {
             <BriefcaseBusiness size={18} />
             Saved Businesses
           </button>
-
           <button
             type="button"
             className={`nav-item ${
@@ -308,18 +268,26 @@ function App() {
             Location Intelligence
           </button>
 
+          <button
+            type="button"
+            className={`nav-item ${
+              activePage === "capacity" ? "active" : ""
+            }`}
+            onClick={() => navigate("capacity")}
+          >
+            <Ruler size={18} />
+            Space & Capacity
+          </button>
           {activePage === "overview" && (
             <>
               <a className="nav-item" href="#assumptions">
                 <SlidersHorizontal size={18} />
                 Business inputs
               </a>
-
               <a className="nav-item" href="#financials">
                 <Calculator size={18} />
                 Financial analysis
               </a>
-
               <a className="nav-item" href="#risk">
                 <ShieldAlert size={18} />
                 Risk simulator
@@ -327,40 +295,31 @@ function App() {
             </>
           )}
         </nav>
-
         <div className="sidebar-spacer" />
-
         <div className="sidebar-note">
           <div className="note-icon">
             <Activity size={18} />
           </div>
-
           <strong>Make decisions with numbers.</strong>
-
           <p>
             Explore business assumptions before committing your capital.
           </p>
         </div>
-
         <div className="sidebar-footer">
           <span
             className={`status-dot ${apiConnected ? "online" : ""}`}
           />
-
           <span>
             {apiConnected ? "API connected" : "API disconnected"}
           </span>
-
           <span className="version">v1.0</span>
         </div>
       </aside>
-
       <main className="main-content" id="overview">
         <header className="topbar">
           <div className="breadcrumb">
             Workspace <span>/</span> <strong>{pageTitle}</strong>
           </div>
-
           <div className="topbar-right">
             <span className="environment-pill">
               <span
@@ -368,13 +327,11 @@ function App() {
               />
               LOCAL ENVIRONMENT
             </span>
-
             <div className="avatar" aria-label="Demo workspace">
               VS
             </div>
           </div>
         </header>
-
         {activePage === "saved" ? (
           <div className="page-content">
             <section className="page-heading">
@@ -386,11 +343,12 @@ function App() {
                 </p>
               </div>
             </section>
-
             <SavedBusinesses />
           </div>
         ) : activePage === "location" ? (
           <LocationImpact />
+        ) : activePage === "capacity" ? (
+          <CapacityPlanner />
         ) : (
           <div className="page-content">
             <section className="page-heading">
@@ -402,7 +360,6 @@ function App() {
                   risks.
                 </p>
               </div>
-
               <button
                 className="button button-secondary refresh-button"
                 type="button"
@@ -417,7 +374,6 @@ function App() {
                 Refresh analysis
               </button>
             </section>
-
             {!apiConnected && (
               <div
                 className="alert alert-warning"
@@ -436,14 +392,12 @@ function App() {
                 </div>
               </div>
             )}
-
             {error && (
               <div className="alert alert-error" role="alert">
                 <CircleAlert size={19} />
                 <span>{error}</span>
               </div>
             )}
-
             <section
               className="kpi-grid"
               aria-label="Financial key metrics"
@@ -455,17 +409,14 @@ function App() {
                     <Banknote size={20} />
                   </span>
                 </div>
-
                 <div className="kpi-value">
                   {result ? currency(result.monthly_revenue) : "—"}
                 </div>
-
                 <div className="kpi-foot">
                   <span className="metric-neutral">Estimated</span>
                   <span>Based on current inputs</span>
                 </div>
               </article>
-
               <article className="kpi-card">
                 <div className="kpi-top">
                   <span className="kpi-label">OPERATING PROFIT</span>
@@ -473,7 +424,6 @@ function App() {
                     <ArrowUpRight size={20} />
                   </span>
                 </div>
-
                 <div
                   className={`kpi-value ${
                     result && result.operating_profit < 0
@@ -483,7 +433,6 @@ function App() {
                 >
                   {result ? currency(result.operating_profit) : "—"}
                 </div>
-
                 <div className="kpi-foot">
                   {result ? (
                     <span
@@ -502,11 +451,9 @@ function App() {
                       Awaiting analysis
                     </span>
                   )}
-
                   <span>Before tax and financing</span>
                 </div>
               </article>
-
               <article className="kpi-card">
                 <div className="kpi-top">
                   <span className="kpi-label">OPERATING COSTS</span>
@@ -514,13 +461,11 @@ function App() {
                     <Wallet size={20} />
                   </span>
                 </div>
-
                 <div className="kpi-value">
                   {result
                     ? currency(result.total_operating_cost)
                     : "—"}
                 </div>
-
                 <div className="kpi-foot">
                   <span className="metric-neutral">
                     Monthly estimate
@@ -528,7 +473,6 @@ function App() {
                   <span>Fixed + variable</span>
                 </div>
               </article>
-
               <article className="kpi-card">
                 <div className="kpi-top">
                   <span className="kpi-label">PROFIT MARGIN</span>
@@ -536,13 +480,11 @@ function App() {
                     <Gauge size={20} />
                   </span>
                 </div>
-
                 <div className="kpi-value">
                   {result
                     ? `${number(result.profit_margin_percent)}%`
                     : "—"}
                 </div>
-
                 <div className="kpi-foot">
                   <span className="metric-neutral">
                     Profit / revenue
@@ -551,7 +493,6 @@ function App() {
                 </div>
               </article>
             </section>
-
             <div className="dashboard-grid">
               <section
                 className="panel assumptions-panel"
@@ -563,18 +504,15 @@ function App() {
                     <h2>Business assumptions</h2>
                     <p>Adjust the values to model your business.</p>
                   </div>
-
                   <span className="heading-icon">
                     <SlidersHorizontal size={19} />
                   </span>
                 </div>
-
                 <form onSubmit={analyzeBusiness}>
                   <div className="form-section-title">
                     <BriefcaseBusiness size={16} />
                     DEMAND & PRICING
                   </div>
-
                   <div className="input-grid">
                     <label className="field">
                       <span>Customers per day</span>
@@ -592,7 +530,6 @@ function App() {
                         required
                       />
                     </label>
-
                     <label className="field">
                       <span>Operating days / month</span>
                       <input
@@ -610,7 +547,6 @@ function App() {
                         required
                       />
                     </label>
-
                     <label className="field">
                       <span>Price per customer (₹)</span>
                       <input
@@ -627,7 +563,6 @@ function App() {
                         required
                       />
                     </label>
-
                     <label className="field">
                       <span>Variable cost / customer (₹)</span>
                       <input
@@ -645,12 +580,10 @@ function App() {
                       />
                     </label>
                   </div>
-
                   <div className="form-section-title section-spaced">
                     <Wallet size={16} />
                     COSTS & CAPITAL
                   </div>
-
                   <div className="input-grid">
                     <label className="field">
                       <span>Fixed monthly costs (₹)</span>
@@ -668,7 +601,6 @@ function App() {
                         required
                       />
                     </label>
-
                     <label className="field">
                       <span>Startup investment (₹)</span>
                       <input
@@ -685,7 +617,6 @@ function App() {
                         required
                       />
                     </label>
-
                     <label className="field field-full">
                       <span>Available capital (₹)</span>
                       <input
@@ -703,7 +634,6 @@ function App() {
                       />
                     </label>
                   </div>
-
                   <button
                     type="submit"
                     className="button button-primary analyze-button"
@@ -719,12 +649,10 @@ function App() {
                       : "Run financial analysis"}
                   </button>
                 </form>
-
                 <p className="helper-text">
                   Results are estimates based on the assumptions you provide.
                 </p>
               </section>
-
               <section
                 className="panel financial-panel"
                 id="financials"
@@ -737,12 +665,10 @@ function App() {
                       Monthly revenue compared with operating costs.
                     </p>
                   </div>
-
                   <span className="heading-icon">
                     <BarChart3 size={20} />
                   </span>
                 </div>
-
                 {!result ? (
                   <div className="empty-state">
                     <div className="empty-icon">
@@ -767,7 +693,6 @@ function App() {
                         Profit
                       </span>
                     </div>
-
                     <div
                       className="bar-chart"
                       aria-label="Monthly financial comparison"
@@ -799,7 +724,6 @@ function App() {
                                 : currency(item.value)}
                             </strong>
                           </div>
-
                           <div className="bar-track">
                             <div
                               className={`bar-fill ${item.className}`}
@@ -814,7 +738,6 @@ function App() {
                         </div>
                       ))}
                     </div>
-
                     <div className="chart-summary">
                       <span className="summary-symbol">
                         {result.operating_profit >= 0 ? (
@@ -823,7 +746,6 @@ function App() {
                           <ArrowDownRight size={19} />
                         )}
                       </span>
-
                       <div>
                         <strong>
                           {result.operating_profit >= 0
@@ -843,9 +765,7 @@ function App() {
                     </div>
                   </>
                 )}
-
                 <div className="panel-divider" />
-
                 <div className="detail-list">
                   <div>
                     <span>Monthly customers</span>
@@ -855,7 +775,6 @@ function App() {
                         : "—"}
                     </strong>
                   </div>
-
                   <div>
                     <span>Contribution per customer</span>
                     <strong>
@@ -864,7 +783,6 @@ function App() {
                         : "—"}
                     </strong>
                   </div>
-
                   <div>
                     <span>Variable costs</span>
                     <strong>
@@ -876,7 +794,6 @@ function App() {
                 </div>
               </section>
             </div>
-
             <section className="panel metrics-panel">
               <div className="panel-heading">
                 <div>
@@ -887,12 +804,10 @@ function App() {
                     position.
                   </p>
                 </div>
-
                 <span className="heading-icon">
                   <Banknote size={20} />
                 </span>
               </div>
-
               <div className="secondary-metrics">
                 <article className="secondary-card">
                   <span className="secondary-icon blue-icon">
@@ -918,7 +833,6 @@ function App() {
                         : "Run an analysis to calculate your target."}
                   </p>
                 </article>
-
                 <article className="secondary-card">
                   <span className="secondary-icon purple-icon">
                     <Wallet size={20} />
@@ -939,7 +853,6 @@ function App() {
                         : "Based on your startup investment."}
                   </p>
                 </article>
-
                 <article className="secondary-card">
                   <span className="secondary-icon green-icon">
                     <Banknote size={20} />
@@ -957,7 +870,6 @@ function App() {
                     profit.
                   </p>
                 </article>
-
                 <article className="secondary-card">
                   <span className="secondary-icon amber-icon">
                     <Clock3 size={20} />
@@ -979,9 +891,7 @@ function App() {
                 </article>
               </div>
             </section>
-
             <DecisionInsights inputs={inputs} />
-
             <section className="panel risk-panel" id="risk">
               <div className="panel-heading">
                 <div>
@@ -992,12 +902,10 @@ function App() {
                     profitability.
                   </p>
                 </div>
-
                 <span className="heading-icon risk-heading-icon">
                   <ShieldAlert size={20} />
                 </span>
               </div>
-
               <div className="risk-layout">
                 <div className="risk-controls">
                   <label className="range-field">
@@ -1019,7 +927,6 @@ function App() {
                       Fewer customers than expected
                     </span>
                   </label>
-
                   <label className="range-field">
                     <span>
                       <span>Variable cost increase</span>
@@ -1039,7 +946,6 @@ function App() {
                       Higher costs for each customer
                     </span>
                   </label>
-
                   <label className="range-field">
                     <span>
                       <span>Fixed cost increase</span>
@@ -1059,7 +965,6 @@ function App() {
                       Higher monthly overheads
                     </span>
                   </label>
-
                   <button
                     className="button button-primary simulate-button"
                     type="button"
@@ -1075,14 +980,12 @@ function App() {
                       ? "Simulating..."
                       : "Simulate risk scenario"}
                   </button>
-
                   {riskError && (
                     <p className="inline-error" role="alert">
                       {riskError}
                     </p>
                   )}
                 </div>
-
                 <div className="risk-results">
                   {!riskResult ? (
                     <div className="risk-placeholder">
@@ -1106,7 +1009,6 @@ function App() {
                           Based on current inputs
                         </span>
                       </div>
-
                       <div className="risk-profit-block">
                         <span>Scenario operating profit</span>
                         <strong
@@ -1123,7 +1025,6 @@ function App() {
                           margin
                         </span>
                       </div>
-
                       <div className="risk-comparison">
                         <div>
                           <span>Baseline profit</span>
@@ -1133,21 +1034,18 @@ function App() {
                               : "Run analysis"}
                           </strong>
                         </div>
-
                         <div>
                           <span>Scenario revenue</span>
                           <strong>
                             {currency(riskResult.monthly_revenue)}
                           </strong>
                         </div>
-
                         <div>
                           <span>Scenario costs</span>
                           <strong>
                             {currency(riskResult.total_operating_cost)}
                           </strong>
                         </div>
-
                         <div>
                           <span>Scenario break-even</span>
                           <strong>
@@ -1159,7 +1057,6 @@ function App() {
                           </strong>
                         </div>
                       </div>
-
                       {result && (
                         <div className="impact-note">
                           {riskResult.operating_profit <
@@ -1168,7 +1065,6 @@ function App() {
                           ) : (
                             <ArrowUpRight size={18} />
                           )}
-
                           <span>
                             Profit changes by{" "}
                             <strong>
@@ -1188,7 +1084,6 @@ function App() {
                 </div>
               </div>
             </section>
-
             <footer className="page-footer">
               <span>VentureSpot Financial Intelligence</span>
               <span>
@@ -1204,5 +1099,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
