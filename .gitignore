@@ -16,7 +16,9 @@ build/
 .DS_Store
 .vscode/
 
+
 # Test and coverage files
 .pytest_cache/
 .coverage
 htmlcov/
+venturespot.db
