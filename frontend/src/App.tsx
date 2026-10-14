@@ -396,7 +396,7 @@ function App() {
             <section className="page-heading">
               <div>
                 <div className="eyebrow">YOUR BUSINESS, IN FOCUS</div>
-                <h1>Business overview</h1>
+                <h1>Business Overview</h1>
                 <p className="page-subtitle">
                   Understand your profitability, cash position, and business
                   risks.

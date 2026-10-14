@@ -222,3 +222,641 @@ button.nav-item { appearance: none; }
   .risk-comparison { grid-template-columns: 1fr; }
   .panel-heading h2 { font-size: 15px; }
 }
+
+
+/* VENTURESPOT — REFINED PURPLE & LAVENDER THEME */
+
+:root {
+  --vs-purple-950: #241044;
+  --vs-purple-900: #35145f;
+  --vs-purple-800: #4c1d95;
+  --vs-purple-700: #6d28d9;
+  --vs-purple-600: #7c3aed;
+  --vs-lavender-200: #ddd6fe;
+  --vs-lavender-100: #ede9fe;
+  --vs-lavender-50: #f7f4ff;
+  --vs-page: #f7f5fc;
+  --vs-text: #24183b;
+  --vs-muted: #756b88;
+  --vs-border: #e6def3;
+}
+
+/* 1. Sidebar and navigation */
+.sidebar {
+  background: var(--vs-purple-950);
+  color: #f5f3ff;
+}
+
+.brand-mark {
+  background: var(--vs-purple-600);
+  box-shadow: none;
+}
+
+.brand small,
+.sidebar-label,
+.version {
+  color: #c4b5fd;
+}
+
+.nav-item {
+  color: #e5ddf7;
+}
+
+.nav-item:hover {
+  background: #3b1d61;
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background: #6d28d9;
+  color: #ffffff;
+  box-shadow: inset 3px 0 #ddd6fe;
+}
+
+.sidebar-note {
+  background: #321653;
+  border-color: #513176;
+}
+
+.note-icon {
+  background: #4c1d95;
+  color: #ede9fe;
+}
+
+/* 2. Main workspace and financial cards */
+body,
+.app-shell {
+  background: var(--vs-page);
+  color: var(--vs-text);
+}
+
+.topbar {
+  background: #ffffff;
+  border-bottom-color: var(--vs-border);
+}
+
+.breadcrumb strong,
+.page-heading h1,
+.panel-heading h2 {
+  color: var(--vs-purple-950);
+}
+
+.eyebrow,
+.panel-kicker {
+  color: var(--vs-purple-700);
+}
+
+.page-subtitle,
+.kpi-label {
+  color: var(--vs-muted);
+}
+
+.panel,
+.kpi-card,
+.secondary-card {
+  background: #ffffff;
+  border: 1px solid var(--vs-border);
+  box-shadow: 0 4px 14px rgb(53 20 95 / 5%);
+  border-radius: 14px;
+}
+
+.kpi-value,
+.secondary-card > strong {
+  color: var(--vs-purple-950);
+}
+
+.heading-icon,
+.secondary-icon {
+  background: var(--vs-lavender-100);
+  color: var(--vs-purple-700);
+}
+
+.environment-pill,
+.avatar {
+  background: var(--vs-lavender-50);
+  border-color: var(--vs-lavender-200);
+  color: var(--vs-purple-800);
+}
+
+/* 3. Charts and financial indicators */
+.button-primary {
+  background: var(--vs-purple-700);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--vs-purple-800);
+}
+
+.button-secondary {
+  background: #ffffff;
+  border-color: var(--vs-border);
+  color: var(--vs-purple-800);
+}
+
+.revenue-icon,
+.blue-icon {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.profit-icon,
+.green-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.cost-icon,
+.amber-icon {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.margin-icon,
+.purple-icon {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.revenue-dot {
+  background: #7c3aed;
+}
+
+.cost-dot {
+  background: #ea9b35;
+}
+
+.profit-dot {
+  background: #16a34a;
+}
+
+.bar-track {
+  background: #eee8f7;
+}
+
+.bar-value,
+.detail-list strong {
+  color: var(--vs-purple-950);
+}
+
+.summary-symbol {
+  background: var(--vs-lavender-100);
+  color: var(--vs-purple-700);
+}
+
+.chart-summary {
+  background: var(--vs-lavender-50);
+  border-color: var(--vs-border);
+}
+
+/* 4. Inputs, sliders, and feedback */
+.field input,
+.field select,
+.field textarea {
+  background: #ffffff;
+  border-color: var(--vs-border);
+  color: var(--vs-text);
+  border-radius: 9px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--vs-purple-600);
+  box-shadow: 0 0 0 3px rgb(124 58 237 / 14%);
+}
+
+.range-field input[type="range"] {
+  accent-color: var(--vs-purple-600);
+}
+
+.range-field strong,
+.form-section-title {
+  color: var(--vs-purple-800);
+}
+
+.risk-results {
+  background: var(--vs-lavender-50);
+  border-color: var(--vs-border);
+}
+
+.risk-comparison > div {
+  background: #ffffff;
+  border-color: var(--vs-border);
+}
+
+.impact-note {
+  background: var(--vs-lavender-100);
+  color: #4c1d95;
+}
+
+.alert-warning {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+  color: #6b21a8;
+}
+
+/* Accessible keyboard focus */
+.button:focus-visible,
+.nav-item:focus-visible,
+.brand:focus-visible {
+  outline: 3px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+/* VentureSpot - stronger lavender dashboard finish */
+
+.page-content {
+  background: #f7f4ff;
+}
+
+.panel,
+.kpi-card,
+.secondary-card {
+  background: #ffffff;
+  border: 1px solid #e2d8f5;
+  box-shadow: 0 5px 18px rgba(76, 29, 149, 0.07);
+}
+
+.topbar {
+  background: #fbfaff;
+  border-bottom: 1px solid #e2d8f5;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: #faf8ff;
+  border: 1px solid #d8c9f0;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  background: #ffffff;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+
+.brand-mark {
+  background: #7c3aed;
+}
+
+.nav-item.active {
+  background: #7c3aed;
+  box-shadow: inset 3px 0 #ddd6fe;
+}
+
+/* VentureSpot - final contrast polish */
+
+.page-content {
+  background: #f4efff;
+}
+
+.panel,
+.kpi-card,
+.secondary-card {
+  background: #ffffff;
+  border-color: #d9c9f2;
+}
+
+.kpi-label,
+.secondary-label,
+.eyebrow,
+.panel-kicker {
+  color: #68449a;
+}
+
+.page-subtitle {
+  color: #625574;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: #fdfbff;
+  border-color: #cbb8e8;
+}
+
+.nav-item.active {
+  background: #7138d4;
+}
+
+.button-primary {
+  background: #7138d4;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: #54249f;
+}
+
+/* VentureSpot - Business overview polish */
+
+.page-heading {
+  margin-bottom: 30px;
+}
+
+.page-heading h1 {
+  font-size: clamp(28px, 2.4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  line-height: 1.2;
+  margin: 10px 0;
+}
+
+.eyebrow {
+  color: #7c3aed;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  color: #6b617b;
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 650px;
+}
+
+/* VentureSpot - Financial card polish */
+
+.kpi-grid {
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  padding: 21px;
+  border-radius: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(76, 29, 149, 0.10);
+}
+
+.kpi-top {
+  margin-bottom: 19px;
+}
+
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.kpi-label {
+  font-size: 10px;
+  letter-spacing: 0.9px;
+}
+
+.kpi-value {
+  font-size: clamp(20px, 1.8vw, 27px);
+  line-height: 1.3;
+  letter-spacing: -0.8px;
+}
+
+.kpi-foot {
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+/* VentureSpot - Financial chart polish */
+
+.financial-panel,
+.metrics-panel {
+  border-radius: 16px;
+}
+
+.chart-legend {
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.chart-legend > span {
+  color: #625574;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+}
+
+.bar-chart {
+  gap: 23px;
+}
+
+.bar-row {
+  gap: 14px;
+}
+
+.bar-label {
+  color: #5f526f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bar-track {
+  height: 14px;
+  background: #eee7fa;
+  border-radius: 999px;
+}
+
+.bar-track > span {
+  border-radius: 999px;
+}
+
+.bar-value {
+  color: #35145f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.chart-summary {
+  margin-top: 28px;
+  padding: 16px;
+  background: #f7f2ff;
+  border: 1px solid #e4d7f7;
+  border-radius: 12px;
+  line-height: 1.7;
+}
+
+.detail-list > div {
+  padding: 15px 0;
+  border-bottom-color: #eee7f7;
+}
+
+.detail-list span {
+  color: #756783;
+}
+
+.detail-list strong {
+  color: #35145f;
+  font-weight: 800;
+}
+
+/* VentureSpot - Location Intelligence polish */
+
+.saved-businesses-page,
+.saved-businesses {
+  color: #24183b;
+}
+
+.saved-businesses-page .panel,
+.saved-businesses .panel {
+  border: 1px solid #e2d8f5;
+  border-radius: 16px;
+  box-shadow: 0 5px 18px rgba(76, 29, 149, 0.06);
+}
+
+.saved-businesses-page button,
+.saved-businesses button {
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.saved-businesses-page button:focus-visible,
+.saved-businesses button:focus-visible {
+  outline: 3px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+.saved-businesses-page input,
+.saved-businesses-page select,
+.saved-businesses input,
+.saved-businesses select {
+  border-color: #d8c9f0;
+  border-radius: 9px;
+}
+
+.saved-businesses-page input:focus,
+.saved-businesses-page select:focus,
+.saved-businesses input:focus,
+.saved-businesses select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+/* ===== VentureSpot Risk Simulator Polish ===== */
+
+.risk-layout {
+  gap: 24px;
+  align-items: start;
+}
+
+.risk-results,
+.risk-comparison {
+  border: 1px solid #e6def3;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(76, 29, 149, 0.07);
+}
+
+.risk-results h2,
+.risk-comparison h2 {
+  color: #35145f;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.risk-layout input,
+.risk-layout select,
+.risk-layout textarea {
+  border: 1px solid #d8c9f0;
+  border-radius: 10px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.risk-layout input:focus,
+.risk-layout select:focus,
+.risk-layout textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.risk-layout button {
+  border-radius: 10px;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.risk-layout button:hover {
+  box-shadow: 0 5px 14px rgba(76, 29, 149, 0.15);
+}
+
+.risk-profit-block {
+  border-radius: 12px;
+  padding: 16px;
+  background: #f7f2ff;
+  border: 1px solid #e4d7f7;
+}
+
+.range-field {
+  margin-bottom: 18px;
+}
+
+.range-field label {
+  color: #625574;
+  font-weight: 600;
+}
+/* ===== Location Intelligence: Purple Polish ===== */
+
+.page-heading {
+  margin-bottom: 30px;
+}
+
+.page-heading h1 {
+  color: #241044;
+  letter-spacing: -1px;
+}
+
+.page-subtitle {
+  color: #756b88;
+  line-height: 1.8;
+}
+
+.page-content label {
+  color: #49365f;
+  font-weight: 650;
+}
+
+.page-content input,
+.page-content select,
+.page-content textarea {
+  border-color: #ded2f1;
+  border-radius: 11px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-content input:focus,
+.page-content select:focus,
+.page-content textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.page-content .financial-panel,
+.page-content .metrics-panel {
+  border: 1px solid #e6def3;
+  border-radius: 18px;
+  box-shadow: 0 6px 22px rgba(76, 29, 149, 0.05);
+}
+
+.page-content button:focus-visible {
+  outline: 3px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+
+
+
+
+
+

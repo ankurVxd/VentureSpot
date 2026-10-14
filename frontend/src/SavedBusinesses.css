@@ -502,3 +502,213 @@
     align-self: flex-start;
   }
 }
+
+/* ===== VentureSpot Saved Businesses: Purple & Lavender ===== */
+
+.saved-page {
+  color: #241044;
+}
+
+.saved-page-header h1 {
+  color: #35145f;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.saved-eyebrow {
+  color: #7c3aed;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+}
+
+.saved-page-header p {
+  color: #756b88;
+  line-height: 1.7;
+}
+
+.saved-panel {
+  background: #fff;
+  border: 1px solid #e4d8f5;
+  border-radius: 18px;
+  box-shadow: 0 6px 22px rgba(76, 29, 149, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.saved-panel-heading {
+  border-bottom: 1px solid #eee7f8;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+
+.saved-panel-heading h2 {
+  color: #35145f;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.saved-panel-heading p {
+  color: #756b88;
+  line-height: 1.6;
+}
+
+.saved-business-item {
+  border: 1px solid #e8def6;
+  border-radius: 12px;
+  background: #fff;
+  color: #49365f;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.saved-business-item:hover {
+  background: #f8f5ff;
+  border-color: #c4b5fd;
+}
+
+.saved-business-item.selected {
+  background: #f0eaff;
+  border-color: #8b5cf6;
+  color: #4c1d95;
+  box-shadow: inset 3px 0 0 #7c3aed;
+}
+
+.saved-business-icon,
+.saved-analysis-icon,
+.saved-history-icon {
+  background: #ede5ff;
+  color: #6d28d9;
+  border-radius: 11px;
+}
+
+.saved-field > span {
+  color: #49365f;
+  font-weight: 700;
+}
+
+.saved-field input {
+  background: #fff;
+  color: #35145f;
+  border: 1px solid #d9cbed;
+  border-radius: 10px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.saved-field input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+}
+
+.saved-primary-button {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  font-weight: 800;
+  box-shadow: 0 5px 14px rgba(91, 33, 182, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.saved-primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(91, 33, 182, 0.25);
+}
+
+.saved-secondary-button {
+  border: 1px solid #d9cbed;
+  border-radius: 10px;
+  background: #f7f2ff;
+  color: #5b21b6;
+  font-weight: 700;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.saved-secondary-button:hover:not(:disabled) {
+  background: #ede5ff;
+  border-color: #b9a0ef;
+}
+
+.saved-analysis-option {
+  border: 1px solid #e5daf7;
+  border-radius: 14px;
+  background: #fcfaff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.saved-analysis-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(76, 29, 149, 0.08);
+}
+
+.saved-analysis-option h3 {
+  color: #35145f;
+}
+
+.saved-analysis-option p {
+  color: #756b88;
+  line-height: 1.7;
+}
+
+.saved-risk-note {
+  color: #6d28d9;
+  background: #f0eaff;
+  border-radius: 8px;
+  padding: 9px;
+  line-height: 1.6;
+}
+
+.saved-alert-success {
+  background: #f0eaff;
+  border: 1px solid #d8c5fa;
+  color: #4c1d95;
+  border-radius: 12px;
+}
+
+.saved-alert-error {
+  border-radius: 12px;
+}
+
+.saved-history-record {
+  border: 1px solid #e5daf7;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.saved-history-record summary {
+  background: #fcfaff;
+  transition: background 0.2s ease;
+}
+
+.saved-history-record summary:hover {
+  background: #f0eaff;
+}
+
+.saved-history-title strong {
+  color: #35145f;
+}
+
+.saved-history-title small,
+.saved-history-id {
+  color: #756b88;
+}
+
+.saved-history-details {
+  background: #fff;
+  border-top: 1px solid #eee7f8;
+}
+
+.saved-history-details pre {
+  background: #f7f4fc;
+  border: 1px solid #e6def3;
+  border-radius: 10px;
+  color: #49365f;
+  overflow-x: auto;
+}
+
+.saved-empty {
+  color: #756b88;
+}
+
+.saved-empty svg {
+  color: #8b5cf6;
+}
