@@ -21,4 +21,4 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
-venturespot.db
+backend/data/venturespot.db
