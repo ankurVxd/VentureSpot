@@ -853,10 +853,133 @@ body,
   outline: 3px solid #a78bfa;
   outline-offset: 3px;
 }
+.sidebar .brand {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+/* Requested dashboard category and clear controls */
+.business-category-field {
+  display: block;
+  max-width: 420px;
+  margin-bottom: 22px;
+}
+.business-category-field select {
+  width: 100%;
+}
+.clear-analysis-button {
+  margin-top: 21px;
+  margin-left: 10px;
+}
+@media (max-width: 560px) {
+  .clear-analysis-button {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.category-selection-panel {
+  margin-bottom: 22px;
+}
+
+/* VentureSpot financial charts: break-even curve and scenario comparison */
+.break-even-chart-wrap,
+.scenario-chart {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #e4d8f6;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fcfaff 100%);
+  min-width: 0;
+}
+.break-even-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 8px;
+}
+.break-even-legend span,
+.scenario-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #625574;
+  font-size: 11px;
+  font-weight: 650;
+}
+.break-even-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart-gridline { stroke: #ece5f6; stroke-width: 1; }
+.chart-gridline.vertical { stroke-dasharray: 3 5; }
+.chart-axis { stroke: #b9a8d2; stroke-width: 1.2; }
+.chart-axis-label { fill: #7d718f; font-size: 11px; }
+.chart-axis-title { fill: #55436d; font-size: 12px; font-weight: 700; }
+.break-even-marker { stroke: #8b5cf6; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.break-even-annotation { fill: #7138d4; font-size: 11px; font-weight: 800; }
+.chart-footnote { margin: 10px 0 0; color: #786b89; font-size: 11px; line-height: 1.5; }
+.scenario-chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 16px; }
+.baseline-dot { background: #a78bfa; }
+.scenario-dot { background: #7138d4; }
+.scenario-chart-row { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(0, 1.2fr); gap: 14px; align-items: center; margin: 14px 0; }
+.scenario-chart-label { display: flex; flex-direction: column; gap: 4px; color: #3e2b57; font-size: 12px; font-weight: 750; }
+.scenario-chart-label small { color: #857796; font-size: 10px; font-weight: 500; overflow-wrap: anywhere; }
+.scenario-pair-bars { display: grid; gap: 6px; }
+.scenario-bar-track { height: 10px; border-radius: 99px; background: #eee8f7; overflow: hidden; }
+.scenario-bar-track > span { display: block; height: 100%; border-radius: inherit; transition: width .3s ease; }
+.baseline-bar { background: #a78bfa; }
+.scenario-bar { background: #7138d4; }
+@media (max-width: 560px) {
+  .break-even-chart-wrap, .scenario-chart { padding: 10px; }
+  .scenario-chart-row { grid-template-columns: 1fr; gap: 7px; }
+  .chart-axis-label { font-size: 10px; }
+}
 
 
-
-
-
-
-
+/* Larger, full-width financial charts */
+.full-chart-panel {
+  margin-top: 24px;
+  padding: clamp(20px, 2.5vw, 34px);
+  width: 100%;
+  min-width: 0;
+}
+.full-chart-panel .panel-heading { margin-bottom: 12px; }
+.full-chart-panel .break-even-chart-wrap {
+  margin-top: 12px;
+  padding: clamp(16px, 2.2vw, 28px);
+  width: 100%;
+}
+.break-even-chart { width: 100%; height: auto; min-height: 300px; max-height: none; }
+.break-even-legend span, .scenario-chart-legend span { font-size: 13px; }
+.chart-axis-label { font-size: 13px; }
+.chart-axis-title { font-size: 15px; }
+.break-even-annotation { font-size: 14px; }
+.chart-footnote { font-size: 12px; }
+.risk-scenario-graph-section {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid #e7dcf5;
+}
+.risk-graph-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.risk-graph-heading strong { color: #3e2b57; font-size: 15px; }
+.risk-graph-heading span { color: #857796; font-size: 11px; }
+.scenario-chart { margin-top: 10px; padding: 22px; }
+.scenario-chart-row { grid-template-columns: minmax(180px, .7fr) minmax(0, 1.3fr); gap: 22px; margin: 24px 0; }
+.scenario-chart-label { font-size: 14px; }
+.scenario-chart-label small { font-size: 12px; line-height: 1.5; }
+.scenario-pair-bars { gap: 10px; }
+.scenario-bar-line { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: center; gap: 10px; }
+.scenario-bar-name { color: #786b89; font-size: 11px; font-weight: 700; }
+.scenario-bar-track { height: 16px; }
+.negative-bar { background: #dc3f56 !important; }
+@media (max-width: 760px) {
+  .break-even-chart { min-height: 220px; }
+  .scenario-chart-row { grid-template-columns: 1fr; gap: 10px; }
+  .full-chart-panel { padding: 16px; }
+  .chart-axis-label { font-size: 11px; }
+}

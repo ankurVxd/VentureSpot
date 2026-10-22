@@ -1,0 +1,60 @@
+/* VentureSpot Location Intelligence scenario graphs */
+
+.location-scenario-chart-panel {
+  width: 100%;
+  margin-top: 28px;
+}
+
+.location-scenario-chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.location-line-chart-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.location-line-chart-scroll {
+  width: 100%;
+  min-height: 560px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.location-line-chart-scroll svg {
+  display: block;
+  width: 100%;
+  min-width: 900px;
+  height: auto;
+  max-height: none;
+}
+
+.location-line-chart-heading h3 {
+  font-size: 20px !important;
+  font-weight: 800;
+}
+
+.location-disclaimer {
+  margin-top: 20px;
+  line-height: 1.7;
+  color: #625574;
+}
+
+@media (max-width: 700px) {
+  .location-line-chart-card {
+    padding: 16px !important;
+  }
+
+  .location-line-chart-scroll {
+    min-height: 420px;
+  }
+
+  .location-line-chart-scroll svg {
+    min-width: 820px;
+  }
+}

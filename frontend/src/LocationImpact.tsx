@@ -7,17 +7,17 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./LocationImpact.css";
+import "./LocationImpactCharts.css";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 type FinancialInputs = {
-  customers_per_day: number;
-  operating_days_per_month: number;
-  price_per_customer: number;
-  variable_cost_per_customer: number;
-  fixed_cost_per_month: number;
-  startup_investment: number;
-  available_capital: number;
-};
+  customers_per_day: number | "";
+  operating_days_per_month: number | "";
+  price_per_customer: number | "";
+  variable_cost_per_customer: number | "";
+  fixed_cost_per_month: number | "";
+  startup_investment: number | "";
+  available_capital: number | "";};
 type Competitor = {
   osm_id: number;
   osm_type: string;
@@ -67,6 +67,9 @@ type ImpactResponse = {
     longitude: number;
   };
   business_category: string;
+  business_subcategory?: string | null;
+  food_preference?: string | null;
+  classification_note?: string;
   radius_m: number;
   competition_data_available: boolean;
   competition_error: string | null;
@@ -85,15 +88,6 @@ type ImpactResponse = {
   interpretation_notes: string[];
   data_source: string;
 };
-const initialInputs: FinancialInputs = {
-  customers_per_day: 40,
-  operating_days_per_month: 26,
-  price_per_customer: 200,
-  variable_cost_per_customer: 80,
-  fixed_cost_per_month: 50000,
-  startup_investment: 300000,
-  available_capital: 400000,
-};
 const categories = [
   { value: "cafe", label: "Café" },
   { value: "restaurant", label: "Restaurant" },
@@ -104,7 +98,30 @@ const categories = [
   { value: "gym", label: "Gym / fitness centre" },
   { value: "clothing", label: "Clothing store" },
   { value: "general", label: "General businesses" },
+  { value: "office_coworking", label: "Office & coworking" },
+  { value: "laundry_cleaning", label: "Laundry & cleaning" },
+  { value: "automotive", label: "Automotive services" },
+  { value: "education", label: "Education & training" },
 ];
+const subcategoriesByCategory: Record<string, string[]> = {
+  cafe: ["Specialty Coffee Shop", "Tea Shop", "Juice Bar", "Bubble Tea Shop", "Dessert Café", "Internet Café"],
+  restaurant: ["Fast Food", "Fine Dining", "Family Restaurant", "Casual Dining", "South Indian", "North Indian", "Chinese", "Pizza", "Biryani", "Street Food", "Cloud Kitchen"],
+  bakery: ["Cake Shop", "Pastry Shop", "Bread Bakery", "Custom Cake Studio", "Cookies & Confectionery", "Donut Shop"],
+  grocery: ["Supermarket", "Mini-Mart", "Convenience Store", "Organic Grocery", "Fruit & Vegetable Shop", "Dairy Shop", "Wholesale Grocery"],
+  salon: ["Hair Salon", "Barbershop", "Beauty Parlour", "Nail Salon", "Spa", "Bridal Makeup Studio", "Unisex Salon"],
+  pharmacy: ["Retail Medical Store", "Generic Medicine Store", "Ayurvedic Store", "Surgical Supplies", "Medical Equipment Store"],
+  gym: ["Traditional Gym", "Personal Training Studio", "Yoga Studio", "Pilates Studio", "CrossFit Studio", "Martial Arts Academy", "Dance Fitness Studio"],
+  clothing: ["Men's Wear", "Women's Wear", "Kids' Wear", "Ethnic Wear", "Sportswear", "Footwear", "Boutique", "Accessories & Bags"],
+  general: ["Electronics Store", "Mobile Phone Shop", "Computer Store", "Stationery Shop", "Gift Shop", "Home Décor", "Furniture Store", "Hardware Store", "Toy Shop", "Pet Supplies", "Bookstore"],
+  office_coworking: ["Coworking Space", "Shared Office", "Private Office Rental", "Business Centre"],
+  laundry_cleaning: ["Laundry", "Dry Cleaning", "Ironing Service", "Home Cleaning"],
+  automotive: ["Car Repair", "Two-Wheeler Repair", "Car Wash", "Tyre Shop", "Auto Parts"],
+  education: ["Coaching Classes", "Computer Training", "Language Institute", "Music School", "Skill Development Centre"],
+};
+const foodPreferencesByCategory: Record<string, string[]> = {
+  cafe: ["Pure Veg", "Non-Veg", "Veg & Non-Veg", "Vegan-Friendly", "Jain-Friendly"],
+  restaurant: ["Pure Veg", "Non-Veg", "Veg & Non-Veg", "Vegan-Friendly", "Jain-Friendly"],
+};
 const money = (value?: number | null) => {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
@@ -140,23 +157,137 @@ function Metric({
     </div>
   );
 }
-export default function LocationImpact() {
+
+function ScenarioLineChart({
+  title,
+  values,
+  formatValue,
+  stroke,
+  labels,
+}: {
+  title: string;
+  values: number[];
+  formatValue: (value: number) => string;
+  stroke: string;
+  labels: string[];
+}) {
+  const width = 1200;
+  const height = 560;
+  const padding = { top: 48, right: 44, bottom: 100, left: 150 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const minY = Math.min(0, ...values);
+  const maxY = Math.max(1, ...values) * 1.12;
+  const range = Math.max(maxY - minY, 1);
+  const points = values.map((value, index) => ({
+    x: padding.left + (values.length <= 1 ? plotWidth / 2 : (index / (values.length - 1)) * plotWidth),
+    y: padding.top + ((maxY - value) / range) * plotHeight,
+    value,
+    label: labels[index] ?? `Scenario ${index}`,
+  }));
+  const tickCount = 7;
+  const ticks = Array.from({ length: tickCount }, (_, index) => maxY - (range * index) / (tickCount - 1));
+  const formatAxis = (value: number) => {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) return `₹${(value / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `₹${(value / 1_000).toFixed(0)}k`;
+    return `₹${Math.round(value)}`;
+  };
+  return (
+    <div className="location-line-chart-card" style={{ minWidth: 0, width: "100%", padding: "28px", border: "1px solid #e2d8f5", borderRadius: "16px", background: "#fff", boxShadow: "0 5px 18px rgba(76, 29, 149, 0.06)" }}>
+      <div className="location-line-chart-heading" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
+        <h3 style={{ margin: 0, color: "#35264d", fontSize: "16px" }}>{title}</h3>
+        <span style={{ color: stroke, fontSize: "12px", fontWeight: 700 }}>● Scenario trend</span>
+      </div>
+      <div className="location-line-chart-scroll" style={{ width: "100%", overflowX: "auto", minHeight: "560px" }}>
+        <svg style={{ width: "100%", minWidth: "900px", height: "auto", display: "block" }} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title} across baseline and demand reduction scenarios`}>
+          {ticks.map((tick, index) => {
+            const y = padding.top + (index / (tickCount - 1)) * plotHeight;
+            return (
+              <g key={`${title}-tick-${index}`}>
+                <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#e8e0f3" strokeDasharray="4 5" />
+                <text x={padding.left - 12} y={y + 4} textAnchor="end" fill="#6b607a" fontSize="16">{formatAxis(tick)}</text>
+              </g>
+            );
+          })}
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#cfc2e2" />
+          <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#cfc2e2" />
+          <polyline points={points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={stroke} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          {points.map((point, index) => (
+            <g key={`${title}-point-${index}`}>
+              <circle cx={point.x} cy={point.y} r="6" fill="#fff" stroke={stroke} strokeWidth="3" />
+              <text x={point.x} y={Math.max(padding.top + 13, point.y - 14)} textAnchor="middle" fill="#35264d" fontSize="15" fontWeight="700">{formatValue(point.value)}</text>
+              <text x={point.x} y={height - padding.bottom + 25} textAnchor="middle" fill="#625574" fontSize="15">{point.label}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function FinancialScenarioCharts({ report }: { report: ImpactResponse }) {
+  const scenarios = [...report.demand_scenarios].sort(
+    (a, b) => a.demand_drop_percent - b.demand_drop_percent,
+  );
+  const revenueValues = [
+    Number(report.baseline_financials.monthly_revenue ?? 0),
+    ...scenarios.map((scenario) => Number(scenario.financials.monthly_revenue ?? 0)),
+  ];
+  const profitValues = [
+    Number(report.baseline_financials.operating_profit ?? 0),
+    ...scenarios.map((scenario) => Number(scenario.financials.operating_profit ?? 0)),
+  ];
+  const labels = ["Baseline", ...scenarios.map((scenario) => `−${scenario.demand_drop_percent}%`)];
+  return (
+    <section className="location-panel location-scenario-chart-panel">
+      <div className="location-section-heading">
+        <span className="location-step">07</span>
+        <div>
+          <h2>Financial impact — line graph</h2>
+          <p>See how monthly revenue and operating profit change as customer demand decreases.</p>
+        </div>
+      </div>
+      <div className="location-scenario-chart-grid">
+        <ScenarioLineChart
+          title="Monthly revenue"
+          values={revenueValues}
+          formatValue={money}
+          stroke="#7138d4"
+          labels={labels}
+        />
+        <ScenarioLineChart
+          title="Operating profit"
+          values={profitValues}
+          formatValue={money}
+          stroke="#0f9f76"
+          labels={labels}
+        />
+      </div>
+      <p className="location-disclaimer">X-axis shows the baseline and demand-reduction scenarios. Each graph uses its own vertical scale so changes in revenue and profit remain readable.</p>
+    </section>
+  );
+}
+
+type LocationImpactProps = {
+  category: string;
+  onCategoryChange: (category: string) => void;
+  inputs: FinancialInputs;
+  onInputChange: (field: keyof FinancialInputs, value: string) => void;
+};
+export default function LocationImpact({
+  category,
+  onCategoryChange,
+  inputs,
+  onInputChange,
+}: LocationImpactProps) {
   const [address, setAddress] = useState("");
-  const [category, setCategory] = useState("cafe");
-  const [radius, setRadius] = useState(1000);
-  const [inputs, setInputs] = useState<FinancialInputs>(initialInputs);
+ const [radius, setRadius] = useState(1000);
+ const [subCategory, setSubCategory] = useState("");
+ const [foodPreference, setFoodPreference] = useState("");
   const [report, setReport] = useState<ImpactResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  function updateInput(
-    field: keyof FinancialInputs,
-    value: string,
-  ) {
-    setInputs((current) => ({
-      ...current,
-      [field]: value === "" ? 0 : Number(value),
-    }));
-  }
   async function runAnalysis(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -166,7 +297,9 @@ export default function LocationImpact() {
       address: address.trim(),
       business_category: category,
       radius_m: radius,
-      financial_inputs: inputs,
+      financial_inputs: Object.fromEntries(
+        Object.entries(inputs).map(([key, value]) => [key, value === "" ? 0 : Number(value)]),
+      ),
       demand_drop_percentages: [5, 10, 15],
     };
     try {
@@ -240,7 +373,11 @@ export default function LocationImpact() {
               <select
                 id="location-category"
                 value={category}
-                onChange={(event) => setCategory(event.target.value)}
+                onChange={(event) => {
+                  onCategoryChange(event.target.value);
+                  setSubCategory("");
+                  setFoodPreference("");
+                }}
               >
                 {categories.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -263,6 +400,39 @@ export default function LocationImpact() {
               </select>
             </div>
           </div>
+          <div className="location-fields-grid">
+            <div className="location-field">
+              <label htmlFor="location-subcategory">Sub-business category</label>
+              <select
+                id="location-subcategory"
+                value={subCategory}
+                onChange={(event) => setSubCategory(event.target.value)}
+              >
+                <option value="">All subcategories</option>
+                {(subcategoriesByCategory[category] ?? []).map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </div>
+            {(foodPreferencesByCategory[category] ?? []).length > 0 && (
+              <div className="location-field">
+                <label htmlFor="location-food-preference">Food preference</label>
+                <select
+                  id="location-food-preference"
+                  value={foodPreference}
+                  onChange={(event) => setFoodPreference(event.target.value)}
+                >
+                  <option value="">Any / not specified</option>
+                  {(foodPreferencesByCategory[category] ?? []).map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          <p className="location-form-note">
+            Food preference and subcategory are passed as search context. The map provider may not classify every nearby business at this level, so unverified classifications are not guessed.
+          </p>
         </section>
         <section className="location-panel">
           <div className="location-section-heading">
@@ -285,7 +455,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.customers_per_day}
                 onChange={(e) =>
-                  updateInput("customers_per_day", e.target.value)
+                  onInputChange("customers_per_day", e.target.value)
                 }
                 required
               />
@@ -300,7 +470,7 @@ export default function LocationImpact() {
                 step="1"
                 value={inputs.operating_days_per_month}
                 onChange={(e) =>
-                  updateInput("operating_days_per_month", e.target.value)
+                  onInputChange("operating_days_per_month", e.target.value)
                 }
                 required
               />
@@ -314,7 +484,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.price_per_customer}
                 onChange={(e) =>
-                  updateInput("price_per_customer", e.target.value)
+                  onInputChange("price_per_customer", e.target.value)
                 }
                 required
               />
@@ -330,7 +500,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.variable_cost_per_customer}
                 onChange={(e) =>
-                  updateInput("variable_cost_per_customer", e.target.value)
+                  onInputChange("variable_cost_per_customer", e.target.value)
                 }
                 required
               />
@@ -344,7 +514,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.fixed_cost_per_month}
                 onChange={(e) =>
-                  updateInput("fixed_cost_per_month", e.target.value)
+                  onInputChange("fixed_cost_per_month", e.target.value)
                 }
                 required
               />
@@ -358,7 +528,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.startup_investment}
                 onChange={(e) =>
-                  updateInput("startup_investment", e.target.value)
+                  onInputChange("startup_investment", e.target.value)
                 }
                 required
               />
@@ -372,7 +542,7 @@ export default function LocationImpact() {
                 step="any"
                 value={inputs.available_capital}
                 onChange={(e) =>
-                  updateInput("available_capital", e.target.value)
+                  onInputChange("available_capital", e.target.value)
                 }
                 required
               />
@@ -409,6 +579,11 @@ export default function LocationImpact() {
             <div>
               <h2>Competition overview</h2>
               <p>{report.searched_location.display_name}</p>
+              <p className="location-form-note">
+                Selected: {categories.find((item) => item.value === report.business_category)?.label ?? report.business_category}
+                {report.business_subcategory ? ` · ${report.business_subcategory}` : ""}
+                {report.food_preference ? ` · ${report.food_preference}` : ""}
+              </p>
             </div>
           </div>
           {!competitionAvailable ? (
@@ -643,6 +818,7 @@ export default function LocationImpact() {
               financial inputs remain unchanged.
             </p>
           </section>
+          <FinancialScenarioCharts report={report} />
           <section className="location-panel location-notes">
             <h2>How to interpret this report</h2>
             <ul>

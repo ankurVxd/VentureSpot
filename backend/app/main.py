@@ -20,6 +20,7 @@ from backend.app.database import (
     list_businesses,
     save_analysis,
 )
+from backend.app.services.chart_data import build_break_even_chart, build_scenario_comparison_chart
 from backend.app.services.location import (
     LocationServiceError,
     SUPPORTED_CATEGORIES,
@@ -90,6 +91,8 @@ class LocationSearchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     address: str = Field(min_length=3, max_length=500)
     business_category: str = Field(min_length=2, max_length=50)
+    business_subcategory: Optional[str] = Field(default=None, max_length=100)
+    food_preference: Optional[str] = Field(default=None, max_length=40)
     radius_m: int = Field(default=1000, ge=100, le=5000)
 class LocationImpactRequest(LocationSearchRequest):
     financial_inputs: BusinessRequest
@@ -140,6 +143,47 @@ def results_to_dict(results) -> dict:
     if hasattr(results, "__dict__"):
         return vars(results)
     return dict(results)
+
+
+def add_visualizations(results: dict, inputs: Optional[dict] = None, baseline: Optional[dict] = None) -> dict:
+    """Attach chart-ready series derived from the financial engine output."""
+    monthly_financials = [
+        {"label": "Revenue", "value": results["monthly_revenue"]},
+        {"label": "Operating costs", "value": results["total_operating_cost"]},
+        {"label": "Operating profit", "value": results["operating_profit"]},
+    ]
+    variable_cost = results["monthly_variable_cost"]
+    fixed_cost = results["fixed_cost"]
+    total_cost = variable_cost + fixed_cost
+    break_even_customers = results.get("break_even_customers")
+
+    return {
+        **results,
+        "visualizations": {
+            "monthly_financials": monthly_financials,
+            "cost_composition": [
+                {"label": "Variable costs", "value": variable_cost},
+                {"label": "Fixed costs", "value": fixed_cost},
+            ],
+            "break_even": {
+                "actual_customers": results["monthly_customers"],
+                "required_customers": break_even_customers,
+                "coverage_percent": (
+                    min(100.0, results["monthly_customers"] / break_even_customers * 100)
+                    if break_even_customers and break_even_customers > 0
+                    else None
+                ),
+            },
+            "risk_profit": {
+                "revenue": results["monthly_revenue"],
+                "operating_costs": results["total_operating_cost"],
+                "operating_profit": results["operating_profit"],
+            },
+            "break_even_curve": build_break_even_chart(inputs or {}, results),
+            "scenario_comparison": build_scenario_comparison_chart(baseline, results),
+        },
+    }
+
 def persist_analysis_result(
     business_id: Optional[int],
     analysis_type: str,
@@ -222,7 +266,6 @@ def calculate_financial_changes(
 # =========================================================
 # GENERAL ENDPOINTS
 # =========================================================
-
 @app.get("/")
 def root():
     return {
@@ -231,7 +274,6 @@ def root():
         "version": "0.3.0",
         "docs": "/docs",
     }
-
 @app.get("/api/v1/health")
 def health_check():
     return {
@@ -247,7 +289,7 @@ def analyze_business(
     business_id: Optional[int] = None,
 ):
     inputs = to_business_inputs(request)
-    results = calculate_financials(inputs)
+    results = add_visualizations(results_to_dict(calculate_financials(inputs)), request.model_dump())
     return persist_analysis_result(
         business_id=business_id,
         analysis_type="financial",
@@ -260,7 +302,7 @@ def simulate_business_risk(
     business_id: Optional[int] = None,
 ):
     inputs = to_business_inputs(request)
-    results = simulate_risk(
+    results = add_visualizations(results_to_dict(simulate_risk(
         inputs,
         demand_drop_percent=request.demand_drop_percent,
         variable_cost_increase_percent=(
@@ -269,7 +311,7 @@ def simulate_business_risk(
         fixed_cost_increase_percent=(
             request.fixed_cost_increase_percent
         ),
-    )
+    )), request.model_dump(), baseline=results_to_dict(calculate_financials(inputs)))
     return persist_analysis_result(
         business_id=business_id,
         analysis_type="risk_simulation",
@@ -375,29 +417,69 @@ def estimate_business_capacity(request: CapacityRequest):
 # =========================================================
 # SAVED BUSINESSES
 # =========================================================
-
+# =========================================================
+# SAVED BUSINESSES
+# =========================================================
 @app.post("/api/v1/businesses", status_code=201)
 def create_saved_business(request: SavedBusinessCreate):
     name = request.name.strip()
-
     if not name:
         raise HTTPException(
             status_code=422,
             detail="Business name cannot be empty.",
         )
-
     try:
         business = create_business(name, request.inputs.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
     return business
-
-
 @app.get("/api/v1/businesses")
 def get_saved_businesses():
     return list_businesses()
+@app.get("/api/v1/businesses/{business_id}")
+def get_saved_business(business_id: int):
+    business = get_business(business_id)
+    if not business:
+        raise HTTPException(
+            status_code=404,
+            detail="Business not found",
+        )
+    return business
+@app.get("/api/v1/businesses/{business_id}/analyses")
+def get_saved_business_analyses(business_id: int):
+    business = get_business(business_id)
+    if not business:
+        raise HTTPException(
+            status_code=404,
+            detail="Business not found",
+        )
+    return {
+        "business_id": business_id,
+        "analyses": list_analyses(business_id),
+    }
 # =========================================================
+FOOD_PREFERENCES = {
+    "Pure Veg",
+    "Non-Veg",
+    "Veg & Non-Veg",
+    "Vegan-Friendly",
+    "Jain-Friendly",
+}
+
+
+def validate_location_classification(request: LocationSearchRequest, category: str) -> None:
+    """Validate optional subcategory and food-preference context."""
+    if request.food_preference and category not in {"cafe", "restaurant"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Food preference is available only for cafés and restaurants.",
+        )
+    if request.food_preference and request.food_preference not in FOOD_PREFERENCES:
+        raise HTTPException(status_code=400, detail="Unsupported food preference.")
+    if request.business_subcategory and not request.business_subcategory.strip():
+        raise HTTPException(status_code=400, detail="Subcategory cannot be blank.")
+
+
 # LOCATION INTELLIGENCE — STAGE 1
 # =========================================================
 @app.get("/api/v1/location/geocode")
@@ -417,6 +499,7 @@ def location_search(request: LocationSearchRequest):
                 + ", ".join(sorted(SUPPORTED_CATEGORIES))
             ),
         )
+    validate_location_classification(request, category)
     try:
         location = geocode_location(request.address)
         nearby = find_nearby_businesses(
@@ -433,6 +516,13 @@ def location_search(request: LocationSearchRequest):
                 "longitude": location["longitude"],
             },
             "business_category": category,
+            "business_subcategory": request.business_subcategory,
+            "food_preference": request.food_preference,
+            "classification_note": (
+                "Subcategory and food preference are user-selected search context. "
+                "The places provider may not label nearby businesses at this level; "
+                "unverified classifications are not inferred."
+            ),
             **nearby,
         }
     except (ValueError, LocationServiceError) as exc:
@@ -450,6 +540,7 @@ def location_financial_impact(request: LocationImpactRequest):
             detail="Unsupported business category. Choose from: "
             + ", ".join(sorted(SUPPORTED_CATEGORIES)),
         )
+    validate_location_classification(request, category)
     percentages = request.demand_drop_percentages
     if not percentages:
         raise HTTPException(status_code=400, detail="Provide at least one demand-drop percentage.")
@@ -515,6 +606,13 @@ def location_financial_impact(request: LocationImpactRequest):
             "longitude": location["longitude"],
         },
         "business_category": category,
+        "business_subcategory": request.business_subcategory,
+        "food_preference": request.food_preference,
+        "classification_note": (
+            "Subcategory and food preference are user-selected search context. "
+            "Competitor lookup uses the main category because the places provider "
+            "may not reliably classify every business by cuisine or dietary type."
+        ),
         "radius_m": request.radius_m,
         "competition_data_available": nearby is not None,
         "competition_error": competition_error,
