@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, Building2, Calculator, LoaderCircle, Ruler } from "lucide-react";
 import "./CapacityPlanner.css";
+import { businessCategories, subcategoriesByCategory, capacityTypeForCategory } from "./businessOptions";
 
 const API_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -72,8 +73,15 @@ async function calculateCapacity(payload: {
   return response.json() as Promise<CapacityResponse>;
 }
 
-export default function CapacityPlanner() {
-  const [businessType, setBusinessType] = useState<BusinessType>("cafe_restaurant");
+type CapacityPlannerProps = {
+  category: string;
+  onCategoryChange: (category: string) => void;
+  subcategory: string;
+  onSubcategoryChange: (subcategory: string) => void;
+};
+
+export default function CapacityPlanner({ category, onCategoryChange, subcategory, onSubcategoryChange }: CapacityPlannerProps) {
+  const businessType = capacityTypeForCategory(category) as BusinessType;
   const [areaUnit, setAreaUnit] = useState<"sq_ft" | "sq_m">("sq_ft");
   const [totalArea, setTotalArea] = useState("1000");
   const [reservedArea, setReservedArea] = useState("250");
@@ -141,13 +149,22 @@ export default function CapacityPlanner() {
 
           <form onSubmit={submit}>
             <label className="capacity-field">
-              <span>Business type</span>
-              <select value={businessType} onChange={(event) => setBusinessType(event.target.value as BusinessType)}>
-                {BUSINESS_OPTIONS.map((option) => (
+              <span>Business category</span>
+              <select value={category} onChange={(event) => onCategoryChange(event.target.value)}>
+                {businessCategories.map((option) => (
                   <option value={option.value} key={option.value}>{option.label}</option>
                 ))}
               </select>
-              <small>{selectedOption.description}</small>
+            </label>
+            <label className="capacity-field">
+              <span>Business sub-category</span>
+              <select value={subcategory} onChange={(event) => onSubcategoryChange(event.target.value)}>
+                <option value="">All subcategories</option>
+                {(subcategoriesByCategory[category] ?? []).map((item) => (
+                  <option value={item} key={item}>{item}</option>
+                ))}
+              </select>
+              <small>{selectedOption.description} · Category and sub-category stay synchronized across tabs.</small>
             </label>
 
             <div className="capacity-field-row">

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { businessCategories as categories, subcategoriesByCategory, foodPreferencesByCategory } from "./businessOptions";
 import {
   CircleMarker,
   MapContainer,
@@ -19,7 +20,7 @@ type FinancialInputs = {
   startup_investment: number | "";
   available_capital: number | "";};
 type Competitor = {
-  osm_id: number;
+  osm_id: number | string;
   osm_type: string;
   name: string;
   category: string;
@@ -28,6 +29,8 @@ type Competitor = {
   longitude: number;
   distance_m: number;
   distance_km: number;
+  food_classification?: string;
+  matched_categories?: string[];
 };
 type FinancialResults = {
   monthly_customers?: number;
@@ -87,40 +90,6 @@ type ImpactResponse = {
   demand_scenarios: Scenario[];
   interpretation_notes: string[];
   data_source: string;
-};
-const categories = [
-  { value: "cafe", label: "Café" },
-  { value: "restaurant", label: "Restaurant" },
-  { value: "bakery", label: "Bakery" },
-  { value: "grocery", label: "Grocery / supermarket" },
-  { value: "salon", label: "Salon / beauty" },
-  { value: "pharmacy", label: "Pharmacy" },
-  { value: "gym", label: "Gym / fitness centre" },
-  { value: "clothing", label: "Clothing store" },
-  { value: "general", label: "General businesses" },
-  { value: "office_coworking", label: "Office & coworking" },
-  { value: "laundry_cleaning", label: "Laundry & cleaning" },
-  { value: "automotive", label: "Automotive services" },
-  { value: "education", label: "Education & training" },
-];
-const subcategoriesByCategory: Record<string, string[]> = {
-  cafe: ["Specialty Coffee Shop", "Tea Shop", "Juice Bar", "Bubble Tea Shop", "Dessert Café", "Internet Café"],
-  restaurant: ["Fast Food", "Fine Dining", "Family Restaurant", "Casual Dining", "South Indian", "North Indian", "Chinese", "Pizza", "Biryani", "Street Food", "Cloud Kitchen"],
-  bakery: ["Cake Shop", "Pastry Shop", "Bread Bakery", "Custom Cake Studio", "Cookies & Confectionery", "Donut Shop"],
-  grocery: ["Supermarket", "Mini-Mart", "Convenience Store", "Organic Grocery", "Fruit & Vegetable Shop", "Dairy Shop", "Wholesale Grocery"],
-  salon: ["Hair Salon", "Barbershop", "Beauty Parlour", "Nail Salon", "Spa", "Bridal Makeup Studio", "Unisex Salon"],
-  pharmacy: ["Retail Medical Store", "Generic Medicine Store", "Ayurvedic Store", "Surgical Supplies", "Medical Equipment Store"],
-  gym: ["Traditional Gym", "Personal Training Studio", "Yoga Studio", "Pilates Studio", "CrossFit Studio", "Martial Arts Academy", "Dance Fitness Studio"],
-  clothing: ["Men's Wear", "Women's Wear", "Kids' Wear", "Ethnic Wear", "Sportswear", "Footwear", "Boutique", "Accessories & Bags"],
-  general: ["Electronics Store", "Mobile Phone Shop", "Computer Store", "Stationery Shop", "Gift Shop", "Home Décor", "Furniture Store", "Hardware Store", "Toy Shop", "Pet Supplies", "Bookstore"],
-  office_coworking: ["Coworking Space", "Shared Office", "Private Office Rental", "Business Centre"],
-  laundry_cleaning: ["Laundry", "Dry Cleaning", "Ironing Service", "Home Cleaning"],
-  automotive: ["Car Repair", "Two-Wheeler Repair", "Car Wash", "Tyre Shop", "Auto Parts"],
-  education: ["Coaching Classes", "Computer Training", "Language Institute", "Music School", "Skill Development Centre"],
-};
-const foodPreferencesByCategory: Record<string, string[]> = {
-  cafe: ["Pure Veg", "Non-Veg", "Veg & Non-Veg", "Vegan-Friendly", "Jain-Friendly"],
-  restaurant: ["Pure Veg", "Non-Veg", "Veg & Non-Veg", "Vegan-Friendly", "Jain-Friendly"],
 };
 const money = (value?: number | null) => {
   if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -272,19 +241,25 @@ function FinancialScenarioCharts({ report }: { report: ImpactResponse }) {
 type LocationImpactProps = {
   category: string;
   onCategoryChange: (category: string) => void;
+  subcategory: string;
+  onSubcategoryChange: (subcategory: string) => void;
   inputs: FinancialInputs;
   onInputChange: (field: keyof FinancialInputs, value: string) => void;
 };
 export default function LocationImpact({
   category,
   onCategoryChange,
+  subcategory,
+  onSubcategoryChange,
   inputs,
   onInputChange,
 }: LocationImpactProps) {
   const [address, setAddress] = useState("");
- const [radius, setRadius] = useState(1000);
- const [subCategory, setSubCategory] = useState("");
- const [foodPreference, setFoodPreference] = useState("");
+  const [radius, setRadius] = useState(1000);
+  const [foodPreference, setFoodPreference] = useState("");
+  useEffect(() => {
+    if (!(foodPreferencesByCategory[category] ?? []).length) setFoodPreference("");
+  }, [category]);
   const [report, setReport] = useState<ImpactResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -297,6 +272,8 @@ export default function LocationImpact({
       address: address.trim(),
       business_category: category,
       radius_m: radius,
+      business_subcategory: subcategory || null,
+      food_preference: foodPreference || null,
       financial_inputs: Object.fromEntries(
         Object.entries(inputs).map(([key, value]) => [key, value === "" ? 0 : Number(value)]),
       ),
@@ -375,7 +352,6 @@ export default function LocationImpact({
                 value={category}
                 onChange={(event) => {
                   onCategoryChange(event.target.value);
-                  setSubCategory("");
                   setFoodPreference("");
                 }}
               >
@@ -405,8 +381,8 @@ export default function LocationImpact({
               <label htmlFor="location-subcategory">Sub-business category</label>
               <select
                 id="location-subcategory"
-                value={subCategory}
-                onChange={(event) => setSubCategory(event.target.value)}
+                value={subcategory}
+                onChange={(event) => onSubcategoryChange(event.target.value)}
               >
                 <option value="">All subcategories</option>
                 {(subcategoriesByCategory[category] ?? []).map((item) => (
@@ -556,8 +532,7 @@ export default function LocationImpact({
             {loading ? "Analyzing location..." : "Analyze location impact"}
           </button>
           <p className="location-form-note">
-            The analysis requires an internet connection to retrieve
-            OpenStreetMap data.
+            The analysis uses Geoapify Places data and OpenStreetMap Nominatim for geocoding. Results depend on provider coverage and recorded category tags.
           </p>
         </section>
       </form>
@@ -720,6 +695,11 @@ export default function LocationImpact({
                   <div className="location-competitor-details">
                     <strong>{competitor.name}</strong>
                     <span>{competitor.category}</span>
+                    {competitor.food_classification && (
+                      <small className="location-competitor-classification">
+                        Food status: {competitor.food_classification}
+                      </small>
+                    )}
                     <small>{competitor.address}</small>
                   </div>
                   <div className="location-competitor-distance">

@@ -507,6 +507,8 @@ def location_search(request: LocationSearchRequest):
             longitude=location["longitude"],
             radius_m=request.radius_m,
             category=category,
+            subcategory=request.business_subcategory,
+            food_preference=request.food_preference,
         )
         return {
             "searched_location": {
@@ -564,6 +566,8 @@ def location_financial_impact(request: LocationImpactRequest):
             longitude=location["longitude"],
             radius_m=request.radius_m,
             category=category,
+            subcategory=request.business_subcategory,
+            food_preference=request.food_preference,
         )
     except (ValueError, LocationServiceError) as exc:
         competition_error = (
@@ -609,10 +613,15 @@ def location_financial_impact(request: LocationImpactRequest):
         "business_subcategory": request.business_subcategory,
         "food_preference": request.food_preference,
         "classification_note": (
-            "Subcategory and food preference are user-selected search context. "
-            "Competitor lookup uses the main category because the places provider "
-            "may not reliably classify every business by cuisine or dietary type."
+            "Geoapify category filters are used where a matching taxonomy exists. "
+            "Some subcategories use the closest available provider category, and "
+            "dietary tags are only as reliable as the source data. Non-veg and mixed-menu "
+            "status are not inferred when unverified."
         ),
+        "subcategory_match_method": nearby.get("subcategory_match_method") if nearby else None,
+        "geoapify_categories_used": nearby.get("geoapify_categories_used") if nearby else None,
+        "geoapify_conditions_used": nearby.get("geoapify_conditions_used") if nearby else None,
+        "data_limitations": nearby.get("data_limitations", []) if nearby else [],
         "radius_m": request.radius_m,
         "competition_data_available": nearby is not None,
         "competition_error": competition_error,
@@ -626,11 +635,12 @@ def location_financial_impact(request: LocationImpactRequest):
             "The model changes daily customer demand while keeping other financial assumptions unchanged.",
             "Variable costs are recalculated by the existing financial engine using the adjusted customer count.",
             "Actual results depend on pricing, customer preferences, foot traffic, competition, and other market conditions.",
-            "OpenStreetMap data may be incomplete. An unavailable competitor search must not be interpreted as zero competition.",
+            "Geoapify data may be incomplete. An unavailable competitor search must not be interpreted as zero competition.",
+            "A food-preference filter can only match dietary tags recorded by Geoapify; it cannot verify a restaurant menu.",
         ],
         "data_source": (
-            "OpenStreetMap"
+            "Geoapify Places + OpenStreetMap Nominatim geocoding"
             if nearby is not None
-            else "OpenStreetMap geocoding; nearby-business lookup unavailable"
+            else "OpenStreetMap Nominatim geocoding; Geoapify nearby-business lookup unavailable"
         ),
     }

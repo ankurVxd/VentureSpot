@@ -478,62 +478,140 @@ def _competition_summary(competitors: list[dict], radius_m: int) -> dict:
 
     }
 
-def find_nearby_businesses(
-    latitude: float,
-    longitude: float,
-    radius_m: int = 1000,
-    category: str = "cafe",
-) -> dict:
-    """Find nearby competitors through Geoapify Places API.
 
-    Set GEOAPIFY_API_KEY in the backend environment. The returned schema is
-    intentionally kept compatible with VentureSpot's existing frontend.
-    """
-    category = category.strip().lower()
+# Map UI subcategories to the most specific Geoapify taxonomy available.
+# Where Geoapify has no exact taxonomy key, use the closest parent category
+# and explicitly disclose that the match is category-based, not verified.
+SUBCATEGORY_GEOAPIFY_CATEGORIES = {
+    "specialty coffee shop": ["catering.cafe.coffee"],
+    "tea shop": ["catering.cafe.tea", "commercial.food_and_drink.coffee_and_tea"],
+    "juice bar": ["catering.cafe", "commercial.food_and_drink.drinks"],
+    "bubble tea shop": ["catering.cafe.bubble_tea"],
+    "dessert café": ["catering.cafe.dessert"],
+    "internet café": ["catering.cafe"],
+    "fast food": ["catering.fast_food"],
+    "fine dining": ["catering.restaurant"],
+    "family restaurant": ["catering.restaurant"],
+    "casual dining": ["catering.restaurant"],
+    "south indian": ["catering.restaurant.indian"],
+    "north indian": ["catering.restaurant.indian"],
+    "chinese": ["catering.restaurant.chinese"],
+    "pizza": ["catering.restaurant.pizza", "catering.fast_food.pizza"],
+    "biryani": ["catering.restaurant.indian"],
+    "street food": ["catering.fast_food"],
+    "cloud kitchen": ["catering.restaurant", "catering.fast_food"],
+    "cake shop": ["commercial.food_and_drink.bakery", "catering.cafe.cake"],
+    "pastry shop": ["commercial.food_and_drink.bakery", "catering.cafe.cake"],
+    "bread bakery": ["commercial.food_and_drink.bakery"],
+    "custom cake studio": ["commercial.food_and_drink.bakery", "catering.cafe.cake"],
+    "cookies & confectionery": ["commercial.food_and_drink.confectionery"],
+    "donut shop": ["catering.cafe.donut"],
+    "supermarket": ["commercial.supermarket"],
+    "mini-mart": ["commercial.convenience"],
+    "convenience store": ["commercial.convenience"],
+    "organic grocery": ["commercial.food_and_drink.organic"],
+    "fruit & vegetable shop": ["commercial.food_and_drink.fruit_and_vegetable"],
+    "dairy shop": ["commercial.food_and_drink.cheese_and_dairy"],
+    "wholesale grocery": ["commercial.supermarket", "commercial.food_and_drink"],
+    "hair salon": ["commercial.hairdresser"],
+    "barbershop": ["commercial.hairdresser"],
+    "beauty parlour": ["commercial.beauty"],
+    "nail salon": ["commercial.beauty"],
+    "spa": ["healthcare", "commercial.beauty"],
+    "bridal makeup studio": ["commercial.beauty"],
+    "unisex salon": ["commercial.hairdresser", "commercial.beauty"],
+    "retail medical store": ["healthcare.pharmacy"],
+    "generic medicine store": ["healthcare.pharmacy", "commercial.chemist"],
+    "ayurvedic store": ["healthcare.pharmacy", "commercial.chemist"],
+    "surgical supplies": ["healthcare", "commercial.chemist"],
+    "medical equipment store": ["healthcare", "commercial.chemist"],
+    "traditional gym": ["leisure.fitness_centre", "sport.fitness"],
+    "personal training studio": ["leisure.fitness_centre", "sport.fitness"],
+    "yoga studio": ["sport"],
+    "pilates studio": ["sport.fitness"],
+    "crossfit studio": ["leisure.fitness_centre", "sport.fitness"],
+    "martial arts academy": ["sport"],
+    "dance fitness studio": ["sport"],
+    "men's wear": ["commercial.clothing.men"],
+    "women's wear": ["commercial.clothing.women"],
+    "kids' wear": ["commercial.clothing.kids"],
+    "ethnic wear": ["commercial.clothing"],
+    "sportswear": ["commercial.clothing.sport"],
+    "footwear": ["commercial.clothing.shoes"],
+    "boutique": ["commercial.clothing"],
+    "accessories & bags": ["commercial.clothing.accessories", "commercial.bag"],
+    "electronics store": ["commercial.elektronics"],
+    "mobile phone shop": ["commercial.elektronics"],
+    "computer store": ["commercial.elektronics"],
+    "stationery shop": ["commercial"],
+    "gift shop": ["commercial"],
+    "home décor": ["commercial.furniture_and_interior"],
+    "furniture store": ["commercial.furniture_and_interior"],
+    "hardware store": ["commercial"],
+    "toy shop": ["commercial"],
+    "pet supplies": ["commercial"],
+    "bookstore": ["commercial.books"],
+    "coworking space": ["office"],
+    "shared office": ["office"],
+    "private office rental": ["office.coworking", "office"],
+    "business centre": ["office.coworking", "office"],
+    "laundry": ["service"],
+    "dry cleaning": ["service"],
+    "ironing service": ["service"],
+    "home cleaning": ["service"],
+    "car repair": ["service.vehicle"],
+    "two-wheeler repair": ["service.vehicle"],
+    "car wash": ["service.vehicle"],
+    "tyre shop": ["commercial", "service.vehicle"],
+    "auto parts": ["commercial.vehicle"],
+    "coaching classes": ["education"],
+    "computer training": ["education"],
+    "language institute": ["education"],
+    "music school": ["education"],
+    "skill development centre": ["education"],
+}
 
-    if category not in SUPPORTED_CATEGORIES:
-        raise ValueError(
-            "Unsupported category. Choose from: "
-            + ", ".join(sorted(SUPPORTED_CATEGORIES))
-        )
-    if not -90 <= latitude <= 90:
-        raise ValueError("Latitude must be between -90 and 90.")
-    if not -180 <= longitude <= 180:
-        raise ValueError("Longitude must be between -180 and 180.")
-    if not 100 <= radius_m <= 5000:
-        raise ValueError("Search radius must be between 100 and 5000 metres.")
-    if not GEOAPIFY_API_KEY:
-        raise LocationServiceError(
-            "Geoapify is not configured. Add GEOAPIFY_API_KEY to the backend environment and restart the server."
-        )
+CATEGORY_FALLBACKS = {
+    "cafe": ["catering.cafe"],
+    "restaurant": ["catering.restaurant", "catering.fast_food", "catering.food_court"],
+    "bakery": ["commercial.food_and_drink.bakery", "catering.cafe.cake"],
+    "grocery": ["commercial.supermarket", "commercial.convenience", "commercial.food_and_drink"],
+    "salon": ["commercial.hairdresser", "commercial.beauty"],
+    "pharmacy": ["healthcare.pharmacy", "commercial.chemist"],
+    "gym": ["leisure.fitness_centre", "sport.fitness", "sport"],
+    "clothing": ["commercial.clothing"],
+    "general": ["commercial", "catering", "healthcare.pharmacy", "leisure.fitness_centre"],
+    "office_coworking": ["office.coworking", "office"],
+    "laundry_cleaning": ["service"],
+    "automotive": ["service.vehicle", "commercial.vehicle"],
+    "education": ["education"],
+}
 
-    cache_key = (
-        "geoapify-businesses",
-        round(latitude, 5),
-        round(longitude, 5),
-        radius_m,
-        category,
-    )
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        logger.info("Nearby-business cache hit (Geoapify)")
-        return cached
+FOOD_PREFERENCE_CONDITIONS = {
+    "pure veg": ["vegetarian.only"],
+    "vegan-friendly": ["vegan"],
+    "jain-friendly": ["vegetarian.only"],
+}
 
-    params = urllib.parse.urlencode({
-        "categories": ",".join(GEOAPIFY_CATEGORIES[category]),
+def _geoapify_request(latitude, longitude, radius_m, categories, conditions=None):
+    params = {
+        "categories": ",".join(categories),
         "filter": f"circle:{longitude},{latitude},{radius_m}",
         "bias": f"proximity:{longitude},{latitude}",
         "limit": 100,
         "lang": "en",
         "apiKey": GEOAPIFY_API_KEY,
-    })
+    }
+    if conditions:
+        params["conditions"] = ",".join(conditions)
+    query = urllib.parse.urlencode(params)
     request = urllib.request.Request(
-        f"{GEOAPIFY_PLACES_URL}?{params}",
+        f"{GEOAPIFY_PLACES_URL}?{query}",
         headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
     )
     try:
         with urllib.request.urlopen(request, timeout=PLACES_TIMEOUT_SECONDS) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+            return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         logger.warning("Geoapify Places returned HTTP %s", exc.code)
         if exc.code in (401, 403):
@@ -549,6 +627,57 @@ def find_nearby_businesses(
             "Geoapify nearby-business lookup failed due to a connection or response error."
         ) from exc
 
+def find_nearby_businesses(
+    latitude: float,
+    longitude: float,
+    radius_m: int = 1000,
+    category: str = "cafe",
+    subcategory: str | None = None,
+    food_preference: str | None = None,
+) -> dict:
+    """Find relevant nearby places with Geoapify's category taxonomy and conditions."""
+    category = category.strip().lower()
+    subcategory = (subcategory or "").strip()
+    food_preference = (food_preference or "").strip()
+
+    if category not in SUPPORTED_CATEGORIES:
+        raise ValueError("Unsupported category. Choose from: " + ", ".join(sorted(SUPPORTED_CATEGORIES)))
+    if not -90 <= latitude <= 90:
+        raise ValueError("Latitude must be between -90 and 90.")
+    if not -180 <= longitude <= 180:
+        raise ValueError("Longitude must be between -180 and 180.")
+    if not 100 <= radius_m <= 5000:
+        raise ValueError("Search radius must be between 100 and 5000 metres.")
+    if not GEOAPIFY_API_KEY:
+        raise LocationServiceError(
+            "Geoapify is not configured. Add GEOAPIFY_API_KEY to the backend environment and restart the server."
+        )
+
+    allowed_food_preferences = {
+        "pure veg", "non-veg", "veg & non-veg", "vegan-friendly", "jain-friendly"
+    }
+    if food_preference and food_preference.casefold() not in allowed_food_preferences:
+        raise ValueError("Unsupported food preference.")
+    if food_preference and category not in {"cafe", "restaurant"}:
+        raise ValueError("Food preference can only be used with cafes and restaurants.")
+
+    normalized_subcategory = subcategory.casefold()
+    subcategory_categories = SUBCATEGORY_GEOAPIFY_CATEGORIES.get(normalized_subcategory)
+    categories = subcategory_categories or CATEGORY_FALLBACKS.get(category, GEOAPIFY_CATEGORIES.get(category, ["commercial"]))
+    conditions = FOOD_PREFERENCE_CONDITIONS.get(food_preference.casefold())
+    # Non-veg and mixed menus have no reliable negative filter in Geoapify.
+    # Never infer non-veg from the absence of a vegetarian tag.
+    cache_key = (
+        "geoapify-enhanced",
+        round(latitude, 5), round(longitude, 5), radius_m,
+        category, normalized_subcategory, food_preference.casefold(),
+    )
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        logger.info("Nearby-business cache hit (Geoapify enhanced)")
+        return cached
+
+    payload = _geoapify_request(latitude, longitude, radius_m, categories, conditions)
     features = payload.get("features", [])
     unique_businesses = {}
     for feature in features:
@@ -561,28 +690,38 @@ def find_nearby_businesses(
             business_longitude, business_latitude = coordinates[0], coordinates[1]
         if business_latitude is None or business_longitude is None:
             continue
-
         name = properties.get("name") or properties.get("address_line1")
         if not name:
             continue
-        business_latitude = float(business_latitude)
-        business_longitude = float(business_longitude)
-        distance_m = _haversine_distance_m(
-            latitude, longitude, business_latitude, business_longitude
-        )
+        business_latitude, business_longitude = float(business_latitude), float(business_longitude)
+        distance_m = _haversine_distance_m(latitude, longitude, business_latitude, business_longitude)
         if distance_m > radius_m:
             continue
-
         place_id = properties.get("place_id") or properties.get("datasource", {}).get("raw", {}).get("id")
         if place_id is None:
             place_id = f"{business_latitude:.6f},{business_longitude:.6f}:{name}"
-        categories = properties.get("categories") or []
+        place_categories = properties.get("categories") or []
         display_category = next(
-            (str(item).split(".")[-1].replace("_", " ").title() for item in categories),
-            category.title(),
+            (str(item).split(".")[-1].replace("_", " ").title() for item in place_categories),
+            category.replace("_", " ").title(),
         )
+        vegetarian_tag = any(
+            str(tag).casefold() in {"vegetarian", "vegetarian.only", "vegan", "vegan.only"}
+            for tag in place_categories
+        )
+        if food_preference.casefold() == "pure veg":
+            classification = "Tagged vegetarian-only" if "vegetarian.only" in [str(t).casefold() for t in place_categories] else "Returned by vegetarian-only filter"
+        elif food_preference.casefold() == "vegan-friendly":
+            classification = "Vegan tag/filter match"
+        elif food_preference.casefold() == "jain-friendly":
+            classification = "Vegetarian match; Jain suitability unverified"
+        elif food_preference.casefold() == "non-veg":
+            classification = "Unknown — menu not verified"
+        elif food_preference.casefold() == "veg & non-veg":
+            classification = "Unknown — mixed menu not verified"
+        else:
+            classification = "Vegetarian tag available" if vegetarian_tag else "Unknown"
         unique_businesses[str(place_id)] = {
-            # Keep legacy field names so the existing React UI needs no changes.
             "osm_id": str(place_id),
             "osm_type": "geoapify",
             "name": name,
@@ -593,20 +732,33 @@ def find_nearby_businesses(
             "distance_m": round(distance_m),
             "distance_km": round(distance_m / 1000, 2),
             "source": "Geoapify",
+            "matched_categories": place_categories,
+            "food_classification": classification,
         }
 
     competitors = sorted(unique_businesses.values(), key=lambda item: item["distance_m"])
+    limitations = [
+        "Results are limited to places indexed by Geoapify and its data sources.",
+        "Subcategories use Geoapify's closest available taxonomy; some labels do not have an exact provider category.",
+        "Some businesses may be missing, unnamed, or incorrectly categorized.",
+        "Distances are straight-line estimates, not road distances.",
+        "Competitor counts alone do not establish actual demand or revenue loss.",
+    ]
+    if food_preference.casefold() in {"non-veg", "veg & non-veg"}:
+        limitations.append("Geoapify does not reliably identify non-vegetarian or mixed-menu businesses; these results are not verified by menu.")
+    if food_preference.casefold() == "jain-friendly":
+        limitations.append("A vegetarian tag does not prove Jain preparation, separate utensils, or no root vegetables.")
     result = {
         "business_category_searched": category,
+        "business_subcategory_searched": subcategory or None,
+        "food_preference_searched": food_preference or None,
+        "geoapify_categories_used": categories,
+        "geoapify_conditions_used": conditions or [],
+        "subcategory_match_method": "Geoapify subcategory taxonomy" if subcategory_categories else ("main-category fallback" if subcategory else "main category"),
         "radius_m": radius_m,
         "competitors": competitors,
         "competition_summary": _competition_summary(competitors, radius_m),
-        "data_limitations": [
-            "Results are limited to places indexed by Geoapify and its data sources.",
-            "Some businesses may be missing, unnamed, or incorrectly categorized.",
-            "Distances are straight-line estimates, not road distances.",
-            "Competitor counts alone do not establish actual demand or revenue loss.",
-        ],
+        "data_limitations": limitations,
         "source": "Geoapify Places API",
     }
     _cache_set(cache_key, result, BUSINESS_CACHE_TTL)

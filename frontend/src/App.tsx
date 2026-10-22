@@ -23,6 +23,7 @@ import {
 import DecisionInsights from "./DecisionInsights";
 import LocationImpact from "./LocationImpact";
 import CapacityPlanner from "./CapacityPlanner";
+import { businessCategories, subcategoriesByCategory } from "./businessOptions";
 import "./App.css";
 const API_URL = (
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
@@ -84,17 +85,6 @@ const initialInputs: BusinessInputs = {
   startup_investment: 15000,
   available_capital: 30000,
 };
-const businessCategories = [
-  { value: "cafe", label: "Café" },
-  { value: "restaurant", label: "Restaurant" },
-  { value: "bakery", label: "Bakery" },
-  { value: "grocery", label: "Grocery / supermarket" },
-  { value: "salon", label: "Salon / beauty" },
-  { value: "pharmacy", label: "Pharmacy" },
-  { value: "gym", label: "Gym / fitness centre" },
-  { value: "clothing", label: "Clothing store" },
-  { value: "general", label: "General businesses" },
-];
 const emptyInputs: BusinessInputs = {
   customers_per_day: "",
   operating_days_per_month: "",
@@ -211,6 +201,7 @@ function App() {
   const [inputs, setInputs] =
     useState<BusinessInputs>(initialInputs);
   const [businessCategory, setBusinessCategory] = useState("cafe");
+  const [businessSubcategory, setBusinessSubcategory] = useState("");
   const [demandDrop, setDemandDrop] = useState(30);
   const [variableIncrease, setVariableIncrease] = useState(0);
   const [fixedIncrease, setFixedIncrease] = useState(0);
@@ -446,12 +437,25 @@ function App() {
         {activePage === "location" ? (
           <LocationImpact
             category={businessCategory}
-            onCategoryChange={setBusinessCategory}
+            onCategoryChange={(category) => {
+              setBusinessCategory(category);
+              setBusinessSubcategory("");
+            }}
+            subcategory={businessSubcategory}
+            onSubcategoryChange={setBusinessSubcategory}
             inputs={inputs}
             onInputChange={updateInput}
           />
         ) : activePage === "capacity" ? (
-          <CapacityPlanner />
+          <CapacityPlanner
+            category={businessCategory}
+            onCategoryChange={(category) => {
+              setBusinessCategory(category);
+              setBusinessSubcategory("");
+            }}
+            subcategory={businessSubcategory}
+            onSubcategoryChange={setBusinessSubcategory}
+          />
         ) : (
           <div className="page-content">
             <section className="page-heading">
@@ -514,12 +518,27 @@ function App() {
                 <span>Business category</span>
                 <select
                   value={businessCategory}
-                  onChange={(event) => setBusinessCategory(event.target.value)}
+                  onChange={(event) => {
+                    setBusinessCategory(event.target.value);
+                    setBusinessSubcategory("");
+                  }}
                 >
                   {businessCategories.map((category) => (
                     <option key={category.value} value={category.value}>
                       {category.label}
                     </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field business-category-field">
+                <span>Business sub-category</span>
+                <select
+                  value={businessSubcategory}
+                  onChange={(event) => setBusinessSubcategory(event.target.value)}
+                >
+                  <option value="">All subcategories</option>
+                  {(subcategoriesByCategory[businessCategory] ?? []).map((item) => (
+                    <option key={item} value={item}>{item}</option>
                   ))}
                 </select>
               </label>
